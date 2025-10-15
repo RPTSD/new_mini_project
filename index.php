@@ -2,7 +2,7 @@
 session_start();
 require_once 'config.php';
 
-$error = ''; 
+$error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username']);
@@ -11,16 +11,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         // Fetch user regardless of admin status first
         $stmt = $pdo->prepare("SELECT * FROM vendor WHERE vendor_name = :vendor_name");
-        $stmt->execute(['vendor_name' => $username]); 
+        $stmt->execute(['vendor_name' => $username]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user) {
-            if ($password === $user['password']) { 
+            if ($password === $user['password']) {
                 // Store session data (same for both admin and user)
                 $_SESSION['admin_id'] = $user['vendor_ID'];
                 $_SESSION['admin_name'] = $user['vendor_name'];
                 $_SESSION['logged_in'] = true;
-                
+
                 // Redirect based on admin status
                 if ($user['admin'] == 1) {
                     // Admin: keep your original redirect (unchanged)
@@ -45,6 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -59,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     </style>
 </head>
+
 <body>
     <div class="login-container">
         <div class="company-logo">
@@ -67,14 +69,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form method="POST">
             <div class="input-group">
                 <label for="username">Username</label>
-                <input type="text" id="username" name="username" required 
-                       placeholder="Enter username" 
-                       value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>">
+                <input type="text" id="username" name="username" required placeholder="Enter username"
+                    value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>">
             </div>
             <div class="input-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" required 
-                       placeholder="Enter password">
+                <input type="password" id="password" name="password" required placeholder="Enter password">
             </div>
             <?php if ($error): ?>
                 <div id="errorMessage" class="error-message"><?php echo htmlspecialchars($error); ?></div>
@@ -83,4 +83,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
     </div>
 </body>
+
 </html>

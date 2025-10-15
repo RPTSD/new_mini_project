@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $vendor_ID = intval($_POST['vendor_ID']);
     $price = floatval($_POST['price']);
     $order_quantity = intval($_POST['order_quantity']);
-    $order_state = $_POST['order_state'];
+    $order_state = 'Pending';
 
     $total_amount = $price * $order_quantity;
 

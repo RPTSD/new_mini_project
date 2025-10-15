@@ -6,6 +6,26 @@ if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in']) {
 }
 require_once 'config.php';
 
+if (isset($_POST['mark_delivered']) && !empty($_POST['order_id'])) {
+    // Get the order ID from the submitted form
+    $order_id_to_update = $_POST['order_id'];
+
+    // Prepare and execute the SQL UPDATE statement
+    try {
+        $sql = "UPDATE purchase_order SET order_state = 'Delivered' WHERE purchase_order_ID = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$order_id_to_update]);
+
+        // Redirect to the same page to refresh the order list
+        // and prevent form resubmission on page reload.
+        header('Location: ' . $_SERVER['PHP_SELF']);
+        exit();
+    } catch (PDOException $e) {
+        // Handle potential database errors
+        die("Error updating record: " . $e->getMessage());
+    }
+}
+
 // Fetch Vendors
 $stmt = $pdo->query("SELECT vendor_ID, vendor_name, contact_information, email FROM vendor ORDER BY vendor_ID");
 $vendors = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -26,6 +46,7 @@ $stmt = $pdo->query("
     FROM purchase_order po
     JOIN product p ON po.product_ID = p.product_ID
     JOIN vendor v ON po.vendor_ID = v.vendor_ID
+    WHERE po.order_state != 'Delivered'
     ORDER BY po.purchase_order_ID DESC
 ");
 $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -33,6 +54,7 @@ $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -40,6 +62,7 @@ $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <!-- Headar -->
     <header class="header">
@@ -68,16 +91,19 @@ $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     </thead>
                     <tbody>
                         <?php foreach ($vendors as $v): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($v['vendor_ID']); ?></td>
-                            <td><?php echo htmlspecialchars($v['vendor_name']); ?></td>
-                            <td><?php echo htmlspecialchars($v['contact_information']); ?></td>
-                            <td><?php echo htmlspecialchars($v['email']); ?></td>
-                            <td>
-                                <a href="edit_vendor.php?id=<?php echo $v['vendor_ID']; ?>" class="btn btn-sm btn-success"><i class="fas fa-edit"></i></a>
-                                <a href="delete_vendor.php?id=<?php echo $v['vendor_ID']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')"><i class="fas fa-trash"></i></a>
-                            </td>
-                        </tr>
+                            <tr>
+                                <td><?php echo htmlspecialchars($v['vendor_ID']); ?></td>
+                                <td><?php echo htmlspecialchars($v['vendor_name']); ?></td>
+                                <td><?php echo htmlspecialchars($v['contact_information']); ?></td>
+                                <td><?php echo htmlspecialchars($v['email']); ?></td>
+                                <td>
+                                    <a href="edit_vendor.php?id=<?php echo $v['vendor_ID']; ?>"
+                                        class="btn btn-sm btn-success"><i class="fas fa-edit"></i></a>
+                                    <a href="delete_vendor.php?id=<?php echo $v['vendor_ID']; ?>"
+                                        class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')"><i
+                                            class="fas fa-trash"></i></a>
+                                </td>
+                            </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
@@ -104,17 +130,20 @@ $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     </thead>
                     <tbody>
                         <?php foreach ($products as $p): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($p['product_ID']); ?></td>
-                            <td><?php echo htmlspecialchars($p['product_name']); ?></td>
-                            <td>$<?php echo number_format($p['price'], 2); ?></td>
-                            <td><?php echo htmlspecialchars($p['product_count']); ?></td>
-                            <td><?php echo htmlspecialchars($p['vendor_name']); ?></td>
-                            <td>
-                                <a href="edit_product.php?id=<?php echo $p['product_ID']; ?>" class="btn btn-sm btn-success"><i class="fas fa-edit"></i></a>
-                                <a href="delete_product.php?id=<?php echo $p['product_ID']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')"><i class="fas fa-trash"></i></a>
-                            </td>
-                        </tr>
+                            <tr>
+                                <td><?php echo htmlspecialchars($p['product_ID']); ?></td>
+                                <td><?php echo htmlspecialchars($p['product_name']); ?></td>
+                                <td>$<?php echo number_format($p['price'], 2); ?></td>
+                                <td><?php echo htmlspecialchars($p['product_count']); ?></td>
+                                <td><?php echo htmlspecialchars($p['vendor_name']); ?></td>
+                                <td>
+                                    <a href="edit_product.php?id=<?php echo $p['product_ID']; ?>"
+                                        class="btn btn-sm btn-success"><i class="fas fa-edit"></i></a>
+                                    <a href="delete_product.php?id=<?php echo $p['product_ID']; ?>"
+                                        class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')"><i
+                                            class="fas fa-trash"></i></a>
+                                </td>
+                            </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
@@ -133,9 +162,11 @@ $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <select name="product_ID" id="productID" required>
                             <option value="">-- Select Product --</option>
                             <?php foreach ($products as $p): ?>
-                            <option value="<?php echo $p['product_ID']; ?>" data-price="<?php echo $p['price']; ?>" data-name="<?php echo htmlspecialchars($p['product_name']); ?>">
-                                #<?php echo $p['product_ID']; ?> - <?php echo htmlspecialchars($p['product_name']); ?> ($<?php echo number_format($p['price'], 2); ?>)
-                            </option>
+                                <option value="<?php echo $p['product_ID']; ?>" data-price="<?php echo $p['price']; ?>"
+                                    data-name="<?php echo htmlspecialchars($p['product_name']); ?>">
+                                    #<?php echo $p['product_ID']; ?> - <?php echo htmlspecialchars($p['product_name']); ?>
+                                    ($<?php echo number_format($p['price'], 2); ?>)
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -148,7 +179,9 @@ $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <select name="vendor_ID" id="vendorID" required>
                             <option value="">-- Select Vendor --</option>
                             <?php foreach ($vendors as $v): ?>
-                            <option value="<?php echo $v['vendor_ID']; ?>"><?php echo htmlspecialchars($v['vendor_name']); ?> (ID: <?php echo $v['vendor_ID']; ?>)</option>
+                                <option value="<?php echo $v['vendor_ID']; ?>">
+                                    <?php echo htmlspecialchars($v['vendor_name']); ?> (ID: <?php echo $v['vendor_ID']; ?>)
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -158,13 +191,14 @@ $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     </div>
                     <div class="form-row">
                         <label>Quantity:</label>
-                        <input type="number" name="order_quantity" id="quantity" min="1" required onchange="calculateTotal()">
+                        <input type="number" name="order_quantity" id="quantity" min="1" required
+                            onchange="calculateTotal()">
                     </div>
                     <div class="form-row">
                         <label>Total Amount:</label>
                         <input type="number" id="totalAmount" step="0.01" readonly>
                     </div>
-                    <div class="form-row">
+                    <!-- <div class="form-row">
                         <label>Order State:</label>
                         <select name="order_state" required>
                             <option value="Pending">Pending</option>
@@ -173,7 +207,7 @@ $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <option value="Delivered">Delivered</option>
                             <option value="Cancelled">Cancelled</option>
                         </select>
-                    </div>
+                    </div> -->
                     <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Save Order</button>
                 </form>
             </div>
@@ -195,27 +229,34 @@ $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <th>Qty</th>
                             <th>Total</th>
                             <th>Status</th>
-                            <th>Actions</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($orders as $o): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($o['purchase_order_ID']); ?></td>
-                            <td><?php echo htmlspecialchars($o['product_name']); ?></td>
-                            <td><?php echo htmlspecialchars($o['vendor_name']); ?></td>
-                            <td>$<?php echo number_format($o['price'], 2); ?></td>
-                            <td><?php echo htmlspecialchars($o['order_quantity']); ?></td>
-                            <td>$<?php echo number_format($o['total_amount'], 2); ?></td>
-                            <td>
-                                <span class="status-badge status-<?php echo strtolower($o['order_state']); ?>">
-                                    <?php echo htmlspecialchars($o['order_state']); ?>
-                                </span>
-                            </td>
-                            <td>
-                                <a href="update_order.php?id=<?php echo $o['purchase_order_ID']; ?>" class="btn btn-sm btn-success"><i class="fas fa-edit"></i></a>
-                            </td>
-                        </tr>
+                            <tr>
+                                <td><?php echo htmlspecialchars($o['purchase_order_ID']); ?></td>
+                                <td><?php echo htmlspecialchars($o['product_name']); ?></td>
+                                <td><?php echo htmlspecialchars($o['vendor_name']); ?></td>
+                                <td>$<?php echo number_format($o['price'], 2); ?></td>
+                                <td><?php echo htmlspecialchars($o['order_quantity']); ?></td>
+                                <td>$<?php echo number_format($o['total_amount'], 2); ?></td>
+                                <td>
+                                    <span class="status-badge status-<?php echo strtolower($o['order_state']); ?>">
+                                        <?php echo htmlspecialchars($o['order_state']); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <?php if (strtolower($o['order_state']) !== 'delivered'): ?>
+                                        <form method="POST" action="">
+                                            <input type="hidden" name="order_id" value="<?php echo htmlspecialchars($o['purchase_order_ID']); ?>">
+                                            <button type="submit" name="mark_delivered" class="delivered-btn">
+                                                Delivered
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
                         <?php endforeach; ?>
                     </tbody>
                 </table>
@@ -230,4 +271,5 @@ $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <script src="script.js"></script>
 </body>
+
 </html>

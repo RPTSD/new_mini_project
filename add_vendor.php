@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $vendor_name = trim($_POST['vendor_name']);
     $contact_information = trim($_POST['contact_information']);
     $email = trim($_POST['email']);
-    $password = password_hash(trim($_POST['password']), PASSWORD_DEFAULT);
+    $password = trim($_POST['password']);
     $admin = isset($_POST['admin']) ? 1 : 0;
 
     try {
