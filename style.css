@@ -202,13 +202,13 @@ tr:hover {
 .status-delivered { background: #28a745; color: white; }
 .status-cancelled { background: #dc3545; color: white; }
 
-.delivered-btn {
+.table-container .delivered-btn {
     /* Basic Appearance */
     background-color: #28a745;  /* A standard "success" green */
     color: #ffffff;             /* White text for contrast */
     border: none;               /* Removes the default browser border */
     padding: 6px 12px;          /* Provides comfortable spacing around the text */
-    border-radius: 5px;         /* Gives the button slightly rounded corners */
+    border-radius: 20px;         /* Gives the button slightly rounded corners */
     cursor: pointer;            /* Changes the cursor to a hand to indicate it's clickable */
     font-size: 14px;            /* Sets a readable font size */
     font-weight: 600;           /* Makes the text semi-bold */

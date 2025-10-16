@@ -172,35 +172,43 @@ $all_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <div class="section-header">
                 <h2><i class="fas fa-shopping-cart"></i> New Purchase Orders</h2>
             </div>
-            <?php if (!empty($all_orders)): ?>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Order ID</th>
-                            <th>Product</th>
-                            <th>Quantity</th>
-                            <th>Total Amount</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($all_orders as $o): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($o['purchase_order_ID']); ?></td>
-                            <td><?php echo htmlspecialchars($o['product_name']); ?></td>
-                            <td><?php echo htmlspecialchars($o['order_quantity']); ?></td>
-                            <td>$<?php echo number_format($o['total_amount'], 2); ?></td>
-                            <td>
-                                <span class="status-badge status-<?php echo strtolower($o['order_state']); ?>">
-                                    <?php echo htmlspecialchars($o['order_state']); ?>
-                                </span>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
+
+            <?php
+            // Filter out delivered orders
+            $new_orders = array_filter($all_orders, function ($o) {
+                return strtolower($o['order_state']) !== 'delivered';
+            });
+            ?>
+        
+            <?php if (!empty($new_orders)): ?>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Total Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($new_orders as $o): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($o['purchase_order_ID']); ?></td>
+                                    <td><?php echo htmlspecialchars($o['product_name']); ?></td>
+                                    <td><?php echo htmlspecialchars($o['order_quantity']); ?></td>
+                                    <td>$<?php echo number_format($o['total_amount'], 2); ?></td>
+                                    <td>
+                                        <span class="status-badge status-<?php echo strtolower($o['order_state']); ?>">
+                                            <?php echo htmlspecialchars($o['order_state']); ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             <?php else: ?>
                 <p>No purchase orders assigned to you.</p>
             <?php endif; ?>
@@ -211,50 +219,60 @@ $all_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <div class="section-header">
                 <h2><i class="fas fa-clipboard-list"></i> Update Order Status</h2>
             </div>
-            <?php if (!empty($all_orders)): ?>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Order ID</th>
-                            <th>Product</th>
-                            <th>Current Status</th>
-                            <th>Update Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($all_orders as $o): 
-                            // Only allow updates for non-delivered, non-cancelled orders
-                            $can_update = !in_array($o['order_state'], ['Delivered', 'Cancelled']);
-                        ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($o['purchase_order_ID']); ?></td>
-                            <td><?php echo htmlspecialchars($o['product_name']); ?></td>
-                            <td>
-                                <span class="status-badge status-<?php echo strtolower($o['order_state']); ?>">
-                                    <?php echo htmlspecialchars($o['order_state']); ?>
-                                </span>
-                            </td>
-                            <td>
-                                <?php if ($can_update): ?>
-                                <form method="POST" action="update_order_status.php" style="margin:0;">
-                                    <input type="hidden" name="order_id" value="<?php echo $o['purchase_order_ID']; ?>">
-                                    <select name="order_state" style="margin-right: 5px;">
-                                        <option value="Pending" <?php echo $o['order_state'] === 'Pending' ? 'selected' : ''; ?>>Pending</option>
-                                        <option value="Processing" <?php echo $o['order_state'] === 'Processing' ? 'selected' : ''; ?>>Processing</option>
-                                        <option value="Shipped" <?php echo $o['order_state'] === 'Shipped' ? 'selected' : ''; ?>>Shipped</option>
-                                    </select>
-                                    <button type="submit" class="btn btn-sm btn-success">Update</button>
-                                </form>
-                                <?php else: ?>
-                                    <span>Final Status</span>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
+
+            <?php
+            // Filter out delivered orders
+            $pending_orders = array_filter($all_orders, function ($o) {
+                return strtolower($o['order_state']) !== 'delivered';
+            });
+            ?>
+        
+            <?php if (!empty($pending_orders)): ?>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Product</th>
+                                <th>Current Status</th>
+                                <th>Update Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($pending_orders as $o):
+                                // Allow updates only for non-cancelled orders
+                                $can_update = !in_array($o['order_state'], ['Cancelled']);
+                                ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($o['purchase_order_ID']); ?></td>
+                                    <td><?php echo htmlspecialchars($o['product_name']); ?></td>
+                                    <td>
+                                        <span class="status-badge status-<?php echo strtolower($o['order_state']); ?>">
+                                            <?php echo htmlspecialchars($o['order_state']); ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <?php if ($can_update): ?>
+                                            <form method="POST" action="update_order_status.php" style="margin:0;">
+                                                <input type="hidden" name="order_id" value="<?php echo $o['purchase_order_ID']; ?>">
+                                                <select name="order_state" style="margin-right: 5px;">
+                                                    <option value="Pending" <?php echo $o['order_state'] === 'Pending' ? 'selected' : ''; ?>>
+                                                        Pending</option>
+                                                    <option value="Processing" <?php echo $o['order_state'] === 'Processing' ? 'selected' : ''; ?>>Processing</option>
+                                                    <option value="Shipped" <?php echo $o['order_state'] === 'Shipped' ? 'selected' : ''; ?>>
+                                                        Shipped</option>
+                                                </select>
+                                                <button type="submit" class="btn btn-sm btn-success">Update</button>
+                                            </form>
+                                        <?php else: ?>
+                                            <span>Final Status</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             <?php else: ?>
                 <p>No orders available for status updates.</p>
             <?php endif; ?>
